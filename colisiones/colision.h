@@ -7,4 +7,4 @@
 
 bool VerificarColisionNaveAsteroides(Nave nave, const Asteroide asteroides[], int cantidadAsteroides);
 
-#endif // COLISION_H
+#endif

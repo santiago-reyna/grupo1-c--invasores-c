@@ -15,7 +15,7 @@ typedef struct
 
 void InicializarAsteroides(void);
 void GenerarYMoverAsteroides(int anchoPantalla, int altoPantalla, float deltaTiempo);
-void DibujarAsteroides(void);
+void DibujarAsteroides(Texture2D texAsteroide);
 const Asteroide* ObtenerAsteroides(void);
 
 #endif
