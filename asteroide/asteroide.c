@@ -55,3 +55,11 @@ void DibujarAsteroides(Texture2D texAsteroide) {
 const Asteroide* ObtenerAsteroides(void) {
     return asteroides;
 }
+void DesactivarAsteroide(int indice)
+ {
+    
+    if (indice >= 0 && indice < MAX_ASTEROIDES)
+     {
+        asteroides[indice].activo = false; 
+    }
+}
