@@ -3,8 +3,8 @@
 
 #include "raylib.h"
 
-#define MAX_ASTEROIDES 5
-#define MAX_DISPAROS 10
+#define MAX_ASTEROIDES 10
+#define MAX_DISPAROS 5
 
 
 typedef enum {

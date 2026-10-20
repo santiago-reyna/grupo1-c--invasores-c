@@ -1,8 +1,7 @@
 #include "colision.h"
 
 bool VerificarColisionNaveAsteroides(Nave nave, const Asteroide asteroides[], int cantidadAsteroides) {
-    // Tolerancia de 6px para evitar colisiones fantasma en bordes transparentes
-    float margen = 6.0f; 
+    float margen = 6.0f; // Tolerancia contra bordes transparentes
 
     Rectangle recNave = { 
         nave.posicion.x + margen, 

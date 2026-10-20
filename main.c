@@ -18,7 +18,7 @@ int main(void) {
     InitAudioDevice();
     SetTargetFPS(60);
 
-    // Cargar Recursos
+
     Texture2D texFondo = LoadTexture("graficos/fondo.png");
     if (texFondo.id == 0) texFondo = LoadTexture("fondo.png");
 
@@ -36,7 +36,7 @@ int main(void) {
 
     if (musicaFondo.stream.buffer != NULL) PlayMusicStream(musicaFondo);
 
-    // Variables de Juego
+    
     EstadoJuego estadoActual = ESTADO_MENU;
     Nave nave;
     int puntaje = 0;
@@ -44,7 +44,7 @@ int main(void) {
     InicializarAsteroides();
     inicializar_nave(&nave, anchoPantalla, altoPantalla);
 
-    // BUCLE PRINCIPAL
+    
     while (!WindowShouldClose()) {
         if (musicaFondo.stream.buffer != NULL) UpdateMusicStream(musicaFondo);
         float deltaTiempo = GetFrameTime();
@@ -81,7 +81,7 @@ int main(void) {
                 break;
         }
 
-        // RENDERIZADO
+        
         BeginDrawing();
             ClearBackground(DARKGRAY);
 

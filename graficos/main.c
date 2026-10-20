@@ -27,9 +27,9 @@ int main() {
     
     SetSoundPitch(sonidoDisparo, 1.0f); 
 
-    SetMusicVolume(musicaFondo, 0.1f);     // Música al 30% para no tapar los efectos
-    SetSoundVolume(sonidoDisparo, 0.6f);    // Disparo al 60%
-    SetSoundVolume(sonidoExplosion, 1.0f);  // Explosión al 80%
+    SetMusicVolume(musicaFondo, 0.5f);     
+    SetSoundVolume(sonidoDisparo, 0.5f);    
+    SetSoundVolume(sonidoExplosion, 10.0f);  
 
     EstadoJuego estadoActual = ESTADO_MENU;
     Nave nave;
