@@ -11,7 +11,7 @@ void InicializarJuego(Nave *nave, Asteroide asteroides[], Disparo disparos[], in
     for (int i = 0; i < MAX_ASTEROIDES; i++) {
         asteroides[i].tamanio = (Vector2){ 50, 50 };
         asteroides[i].posicion = (Vector2){ rand() % (1000 - 50), - (rand() % 500) };
-        asteroides[i].velocidad = (Vector2){ 0, 3.0f + (rand() % 3) };
+        asteroides[i].velocidad = 3.0f + (rand() % 3);
         asteroides[i].activo = true;
     }
 
@@ -34,17 +34,6 @@ void ActualizarJugador(Nave *nave) {
     if (nave->posicion.y > 800 - nave->tamanio.y) nave->posicion.y = 800 - nave->tamanio.y;
 }
 
-void GenerarYMoverAsteroides(Asteroide asteroides[]) {
-    for (int i = 0; i < MAX_ASTEROIDES; i++) {
-        if (asteroides[i].activo) {
-            asteroides[i].posicion.y += asteroides[i].velocidad.y;
-            if (asteroides[i].posicion.y > 800) {
-                asteroides[i].posicion = (Vector2){ rand() % (1000 - 50), -50 };
-            }
-        }
-    }
-}
-
 bool ComprobarColision(Nave nave, Asteroide asteroides[]) {
     Rectangle rectNave = { nave.posicion.x, nave.posicion.y, nave.tamanio.x, nave.tamanio.y };
     for (int i = 0; i < MAX_ASTEROIDES; i++) {
@@ -62,7 +51,6 @@ void DibujarJuego(EstadoJuego estado, Nave nave, Asteroide asteroides[], Disparo
     BeginDrawing();
     ClearBackground(BLACK);
 
-    
     DrawTexturePro(texFondo, (Rectangle){0, 0, (float)texFondo.width, (float)texFondo.height}, (Rectangle){0, 0, 1000, 800}, (Vector2){0, 0}, 0.0f, WHITE);
 
     switch (estado) {
@@ -98,7 +86,3 @@ void DibujarJuego(EstadoJuego estado, Nave nave, Asteroide asteroides[], Disparo
 
     EndDrawing();
 }
-
-
-
-

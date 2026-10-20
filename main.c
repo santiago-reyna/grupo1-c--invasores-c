@@ -1,24 +1,15 @@
-#include <stddef.h>
 #include "raylib.h"
-#include "asteroide/asteroide.h"
-#include "movimientos/juego.h"
-#include "colisiones/colision.h"
-
-typedef enum { 
-    ESTADO_MENU, 
-    ESTADO_JUGANDO, 
-    ESTADO_GAME_OVER 
-} EstadoJuego;
+#include "graficos/Grafico.h"
 
 int main(void) {
     const int anchoPantalla = 1000;
     const int altoPantalla = 800;
-
-    InitWindow(anchoPantalla, altoPantalla, "Space Dodge - Super Main Modular");
+    
+    InitWindow(anchoPantalla, altoPantalla, "Space Dodge - Versión Funcional");
     InitAudioDevice();
     SetTargetFPS(60);
 
-
+    // Cargar Texturas
     Texture2D texFondo = LoadTexture("graficos/fondo.png");
     if (texFondo.id == 0) texFondo = LoadTexture("fondo.png");
 
@@ -27,45 +18,107 @@ int main(void) {
 
     Texture2D texAsteroide = LoadTexture("graficos/asteroide.png");
     if (texAsteroide.id == 0) texAsteroide = LoadTexture("asteroide.png");
-
-    Sound efectoExplosion = LoadSound("graficos/disparolaser.mp3");
-    if (efectoExplosion.stream.buffer == NULL) efectoExplosion = LoadSound("disparolaser.mp3");
-
-    Music musicaFondo = LoadMusicStream("graficos/musicaFondo.mp3");
-    if (musicaFondo.stream.buffer == NULL) musicaFondo = LoadMusicStream("musicaFondo.mp3");
-
-    if (musicaFondo.stream.buffer != NULL) PlayMusicStream(musicaFondo);
-
     
+    // Cargar Audio
+    Music musicaFondo = LoadMusicStream("graficos/musicaFondo.wav");
+    if (!IsMusicValid(musicaFondo)) musicaFondo = LoadMusicStream("musicaFondo.wav");
+    if (IsMusicValid(musicaFondo)) PlayMusicStream(musicaFondo);
+
+    Sound sonidoDisparo = LoadSound("graficos/disparo.wav");
+    if (!IsSoundValid(sonidoDisparo)) sonidoDisparo = LoadSound("disparo.wav");
+
+    Sound sonidoExplosion = LoadSound("graficos/explosion.wav");
+    if (!IsSoundValid(sonidoExplosion)) sonidoExplosion = LoadSound("explosion.wav");
+
+    if (IsMusicValid(musicaFondo)) SetMusicVolume(musicaFondo, 0.5f);
+    if (IsSoundValid(sonidoDisparo)) SetSoundVolume(sonidoDisparo, 0.5f);
+    if (IsSoundValid(sonidoExplosion)) SetSoundVolume(sonidoExplosion, 1.0f);
+
     EstadoJuego estadoActual = ESTADO_MENU;
     Nave nave;
+    Disparo disparos[MAX_DISPAROS];
     int puntaje = 0;
 
+    // Inicializaciones
     InicializarAsteroides();
-    inicializar_nave(&nave, anchoPantalla, altoPantalla);
+    nave.tamanio = (Vector2){ 60, 60 };
+    nave.posicion = (Vector2){ anchoPantalla / 2.0f - nave.tamanio.x / 2.0f, altoPantalla - 100 };
+    nave.velocidad = (Vector2){ 7.0f, 7.0f };
 
-    
+    for (int i = 0; i < MAX_DISPAROS; i++) disparos[i].activo = false;
+
     while (!WindowShouldClose()) {
-        if (musicaFondo.stream.buffer != NULL) UpdateMusicStream(musicaFondo);
-        float deltaTiempo = GetFrameTime();
+        if (IsMusicValid(musicaFondo)) UpdateMusicStream(musicaFondo);
 
         switch (estadoActual) {
             case ESTADO_MENU:
                 if (IsKeyPressed(KEY_ENTER)) {
                     InicializarAsteroides();
-                    inicializar_nave(&nave, anchoPantalla, altoPantalla);
+                    nave.posicion = (Vector2){ anchoPantalla / 2.0f - nave.tamanio.x / 2.0f, altoPantalla - 100 };
+                    for (int i = 0; i < MAX_DISPAROS; i++) disparos[i].activo = false;
                     puntaje = 0;
                     estadoActual = ESTADO_JUGANDO;
                 }
                 break;
 
             case ESTADO_JUGANDO:
-                actualizar_nave(&nave, anchoPantalla);
-                GenerarYMoverAsteroides(anchoPantalla, altoPantalla, deltaTiempo);
+                ActualizarJugador(&nave);
+                GenerarYMoverAsteroides(anchoPantalla, altoPantalla, GetFrameTime());
 
-                if (VerificarColisionNaveAsteroides(nave, ObtenerAsteroides(), MAX_ASTEROIDES)) {
-                    if (efectoExplosion.stream.buffer != NULL) PlaySound(efectoExplosion);
-                    estadoActual = ESTADO_GAME_OVER;
+                // Disparar
+                if (IsKeyPressed(KEY_SPACE)) {
+                    for (int i = 0; i < MAX_DISPAROS; i++) {
+                        if (!disparos[i].activo) {
+                            disparos[i].posicion = (Vector2){ nave.posicion.x + nave.tamanio.x / 2 - 2.5f, nave.posicion.y };
+                            disparos[i].velocidad = (Vector2){ 0, -10.0f };
+                            disparos[i].activo = true;
+                            if (IsSoundValid(sonidoDisparo)) PlaySound(sonidoDisparo);
+                            break;
+                        }
+                    }
+                }
+
+                // Movimiento disparos
+                for (int i = 0; i < MAX_DISPAROS; i++) {
+                    if (disparos[i].activo) {
+                        disparos[i].posicion.y += disparos[i].velocidad.y;
+                        if (disparos[i].posicion.y < 0) disparos[i].activo = false;
+                    }
+                }
+
+                // Obtener asteroides actualizados
+                const Asteroide *asteroidesArray = ObtenerAsteroides();
+
+                // Colisiones: Disparo vs Asteroide
+                for (int i = 0; i < MAX_DISPAROS; i++) {
+                    if (disparos[i].activo) {
+                        for (int j = 0; j < MAX_ASTEROIDES; j++) {
+                            if (asteroidesArray[j].activo) {
+                                Rectangle rectDisparo = { disparos[i].posicion.x, disparos[i].posicion.y, 5, 15 };
+                                Rectangle rectAsteroide = { asteroidesArray[j].posicion.x, asteroidesArray[j].posicion.y, asteroidesArray[j].tamanio.x, asteroidesArray[j].tamanio.y };
+
+                                if (CheckCollisionRecs(rectDisparo, rectAsteroide)) {
+                                    disparos[i].activo = false;
+                                    DesactivarAsteroide(j);
+                                    puntaje += 50;
+                                    if (IsSoundValid(sonidoExplosion)) PlaySound(sonidoExplosion);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Colisión: Nave vs Asteroide
+                for (int j = 0; j < MAX_ASTEROIDES; j++) {
+                    if (asteroidesArray[j].activo) {
+                        Rectangle rectNave = { nave.posicion.x, nave.posicion.y, nave.tamanio.x, nave.tamanio.y };
+                        Rectangle rectAsteroide = { asteroidesArray[j].posicion.x, asteroidesArray[j].posicion.y, asteroidesArray[j].tamanio.x, asteroidesArray[j].tamanio.y };
+
+                        if (CheckCollisionRecs(rectNave, rectAsteroide)) {
+                            if (IsSoundValid(sonidoExplosion)) PlaySound(sonidoExplosion);
+                            estadoActual = ESTADO_GAME_OVER;
+                        }
+                    }
                 }
 
                 puntaje++;
@@ -74,57 +127,25 @@ int main(void) {
             case ESTADO_GAME_OVER:
                 if (IsKeyPressed(KEY_R)) {
                     InicializarAsteroides();
-                    inicializar_nave(&nave, anchoPantalla, altoPantalla);
+                    nave.posicion = (Vector2){ anchoPantalla / 2.0f - nave.tamanio.x / 2.0f, altoPantalla - 100 };
+                    for (int i = 0; i < MAX_DISPAROS; i++) disparos[i].activo = false;
                     puntaje = 0;
                     estadoActual = ESTADO_JUGANDO;
                 }
                 break;
         }
 
-        
-        BeginDrawing();
-            ClearBackground(DARKGRAY);
-
-            if (texFondo.id > 0) {
-                Rectangle destFondo = { 0, 0, (float)anchoPantalla, (float)altoPantalla };
-                Rectangle srcFondo = { 0, 0, (float)texFondo.width, (float)texFondo.height };
-                DrawTexturePro(texFondo, srcFondo, destFondo, (Vector2){0,0}, 0.0f, WHITE);
-            }
-
-            switch (estadoActual) {
-                case ESTADO_MENU:
-                    DrawText("SPACE DODGE", anchoPantalla / 2 - MeasureText("SPACE DODGE", 40) / 2, 250, 40, RAYWHITE);
-                    DrawText("Presiona ENTER para jugar", anchoPantalla / 2 - MeasureText("Presiona ENTER para jugar", 20) / 2, 330, 20, LIGHTGRAY);
-                    break;
-
-                case ESTADO_JUGANDO:
-                    if (texNave.id > 0) {
-                        Rectangle destNave = { nave.posicion.x, nave.posicion.y, nave.tamanio.x, nave.tamanio.y };
-                        Rectangle srcNave = { 0, 0, (float)texNave.width, (float)texNave.height };
-                        DrawTexturePro(texNave, srcNave, destNave, (Vector2){0,0}, 0.0f, WHITE);
-                    } else {
-                        DrawRectangleV(nave.posicion, nave.tamanio, BLUE);
-                    }
-
-                    DibujarAsteroides(texAsteroide);
-                    DrawText(TextFormat("Puntaje: %d", puntaje), 20, 20, 20, YELLOW);
-                    break;
-
-                case ESTADO_GAME_OVER:
-                    DrawText("¡GAME OVER!", anchoPantalla / 2 - MeasureText("¡GAME OVER!", 40) / 2, 230, 40, RED);
-                    DrawText(TextFormat("Puntaje Final: %d", puntaje), anchoPantalla / 2 - MeasureText(TextFormat("Puntaje Final: %d", puntaje), 20) / 2, 290, 20, RAYWHITE);
-                    DrawText("Presiona 'R' para reiniciar", anchoPantalla / 2 - MeasureText("Presiona 'R' para reiniciar", 20) / 2, 350, 20, LIGHTGRAY);
-                    break;
-            }
-
-        EndDrawing();
+        // Renderizado usando el arreglo de asteroides en movimiento
+        DibujarJuego(estadoActual, nave, (Asteroide*)ObtenerAsteroides(), disparos, puntaje, texNave, texAsteroide, texFondo);
     }
 
     if (texFondo.id > 0) UnloadTexture(texFondo);
     if (texNave.id > 0) UnloadTexture(texNave);
     if (texAsteroide.id > 0) UnloadTexture(texAsteroide);
-    if (efectoExplosion.stream.buffer != NULL) UnloadSound(efectoExplosion);
-    if (musicaFondo.stream.buffer != NULL) UnloadMusicStream(musicaFondo);
+    if (IsMusicValid(musicaFondo)) UnloadMusicStream(musicaFondo);
+    if (IsSoundValid(sonidoDisparo)) UnloadSound(sonidoDisparo);
+    if (IsSoundValid(sonidoExplosion)) UnloadSound(sonidoExplosion);
+
     CloseAudioDevice();
     CloseWindow();
 
