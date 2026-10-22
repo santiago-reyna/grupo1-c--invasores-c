@@ -2,21 +2,25 @@
 #define ASTEROIDE_H
 
 #include "raylib.h"
+#include <stdlib.h>
 
-#define MAX_ASTEROIDES 10
 
-typedef struct 
-{
+typedef struct NodoAsteroide {
     Vector2 posicion;
     Vector2 tamanio;
     float velocidad;
-    bool activo;
-} Asteroide;
+    struct NodoAsteroide* siguiente; 
+} NodoAsteroide;
 
-void InicializarAsteroides(void);
+
+void InicializarAsteroides(int anchoPantalla);
+
 void GenerarYMoverAsteroides(int anchoPantalla, int altoPantalla, float deltaTiempo);
+
 void DibujarAsteroides(Texture2D texAsteroide);
-const Asteroide* ObtenerAsteroides(void);
-void DesactivarAsteroide(int indice);
+
+NodoAsteroide* ObtenerListaAsteroides(void);
+
+void EliminarAsteroide(NodoAsteroide* objetivo, int anchoPantalla);
 
 #endif
