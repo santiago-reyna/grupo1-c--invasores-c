@@ -1,0 +1,88 @@
+#include <stdio.h>
+#include <assert.h>
+#include <stdbool.h>
+
+#define MAX_ASTEROIDES 10
+
+typedef struct 
+{
+    float x, y;
+    float ancho, alto;
+    float velocidad;
+    bool activo;
+} Asteroide;
+
+// Arreglo global bajo prueba
+static Asteroide asteroides[MAX_ASTEROIDES];
+
+// Función sometida a las Pruebas de Caja Blanca
+void DesactivarAsteroide(int indice)
+ {
+    if (indice >= 0 && indice < MAX_ASTEROIDES) 
+    {
+        asteroides[indice].activo = false;
+    }
+}
+
+// -------------------------------------------------------------
+// CASOS DE PRUEBA BASADOS EN LOS CAMINOS DEL CFG (PATRÓN AAA)
+// -------------------------------------------------------------
+
+void Test_Camino1_CortocircuitoInferior(void)
+ {
+    // Arrange
+    int indiceInvalido = -1;
+    asteroides[0].activo = true;
+
+    // Act
+    DesactivarAsteroide(indiceInvalido);
+
+    // Assert
+    assert(asteroides[0].activo == true);
+}
+
+void Test_Camino2_CortocircuitoSuperior(void) 
+{
+    // Arrange
+    int indiceInvalido = 10;
+    asteroides[9].activo = true;
+
+    // Act
+    DesactivarAsteroide(indiceInvalido);
+
+    // Assert
+    assert(asteroides[9].activo == true);
+}
+
+
+void Test_Camino3_EjecucionExitosa(void) 
+{
+    // Arrange
+    int indiceValido = 3;
+    asteroides[indiceValido].activo = true;
+
+    // Act
+    DesactivarAsteroide(indiceValido);
+
+    // Assert
+    assert(asteroides[indiceValido].activo == false);
+}
+
+int main(void) 
+{
+    printf("====================================================\n");
+    printf("   EJECUTANDO PRUEBAS UNITARIAS DE CAJA BLANCA      \n");
+    printf("====================================================\n\n");
+
+    Test_Camino1_CortocircuitoInferior();
+    printf("[PASS] Camino 1 (1 -> 4): Cortocircuito por limite inferior OK.\n");
+
+    Test_Camino2_CortocircuitoSuperior();
+    printf("[PASS] Camino 2 (1 -> 2 -> 4): Cortocircuito por limite superior OK.\n");
+
+    Test_Camino3_EjecucionExitosa();
+    printf("[PASS] Camino 3 (1 -> 2 -> 3 -> 4): Asignacion del Nodo 3 OK.\n");
+
+    printf("\nCOBERTURA DE RAMAS (BRANCH COVERAGE) DEL 100%% ALCANZADA\n");
+    return 0;
+}
