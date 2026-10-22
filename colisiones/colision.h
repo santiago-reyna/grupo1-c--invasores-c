@@ -5,6 +5,7 @@
 #include "../movimientos/juego.h"
 #include "../asteroide/asteroide.h"
 
-bool VerificarColisionNaveAsteroides(Nave nave, const Asteroide asteroides[], int cantidadAsteroides);
+// Función adaptada para recorrer la lista enlazada de asteroides
+bool VerificarColisionNaveAsteroides(Nave nave, int anchoPantalla);
 
 #endif

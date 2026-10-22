@@ -1,6 +1,7 @@
 #include "colision.h"
+#include <stddef.h>
 
-bool VerificarColisionNaveAsteroides(Nave nave, const Asteroide asteroides[], int cantidadAsteroides) {
+bool VerificarColisionNaveAsteroides(Nave nave, int anchoPantalla) {
     float margen = 6.0f; // Tolerancia contra bordes transparentes
 
     Rectangle recNave = { 
@@ -10,19 +11,27 @@ bool VerificarColisionNaveAsteroides(Nave nave, const Asteroide asteroides[], in
         nave.tamanio.y - (margen * 2) 
     };
 
-    for (int i = 0; i < cantidadAsteroides; i++) {
-        if (asteroides[i].activo) {
-            Rectangle recAsteroide = { 
-                asteroides[i].posicion.x + margen, 
-                asteroides[i].posicion.y + margen, 
-                asteroides[i].tamanio.x - (margen * 2), 
-                asteroides[i].tamanio.y - (margen * 2) 
-            };
+    // Pedimos la cabeza de la lista enlazada
+    NodoAsteroide *actual = ObtenerListaAsteroides();
 
-            if (CheckCollisionRecs(recNave, recAsteroide)) {
-                return true;
-            }
+    // Recorremos con un bucle while
+    while (actual != NULL) {
+        NodoAsteroide *siguiente = actual->siguiente;
+
+        Rectangle recAsteroide = { 
+            actual->posicion.x + margen, 
+            actual->posicion.y + margen, 
+            actual->tamanio.x - (margen * 2), 
+            actual->tamanio.y - (margen * 2) 
+        };
+
+        if (CheckCollisionRecs(recNave, recAsteroide)) {
+            // Si hay colisión, eliminamos el asteroide de la lista y retornamos true
+            EliminarAsteroide(actual, anchoPantalla);
+            return true;
         }
+
+        actual = siguiente;
     }
 
     return false;

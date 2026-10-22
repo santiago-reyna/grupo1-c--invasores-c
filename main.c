@@ -5,7 +5,7 @@ int main(void) {
     const int anchoPantalla = 1000;
     const int altoPantalla = 800;
     
-    InitWindow(anchoPantalla, altoPantalla, "Space Dodge - Versión Funcional");
+    InitWindow(anchoPantalla, altoPantalla, "Space Dodge - Versión Listas Fix");
     InitAudioDevice();
     SetTargetFPS(60);
 
@@ -43,7 +43,6 @@ int main(void) {
     Disparo disparos[MAX_DISPAROS];
     int puntaje = 0;
 
-    // Inicializaciones principales
     InicializarAsteroides(anchoPantalla);
     InicializarJuego(&nave, disparos, &puntaje, anchoPantalla, altoPantalla);
 
@@ -84,7 +83,7 @@ int main(void) {
                     }
                 }
 
-                // Colisiones: Disparo vs Asteroide (Lista Enlazada)
+                // Colisiones: Disparos vs Asteroides
                 for (int i = 0; i < MAX_DISPAROS; i++) {
                     if (disparos[i].activo) {
                         Rectangle rectDisparo = { disparos[i].posicion.x, disparos[i].posicion.y, 5, 15 };
@@ -99,14 +98,14 @@ int main(void) {
                                 EliminarAsteroide(actual, anchoPantalla);
                                 puntaje += 50;
                                 if (IsSoundValid(sonidoExplosion)) PlaySound(sonidoExplosion);
-                                break;
+                                break; // Salimos del bucle para no procesar 'actual' destruido
                             }
                             actual = siguiente;
                         }
                     }
                 }
 
-                // Colisión: Nave vs Asteroide (Lista Enlazada)
+                // Colisiones: Nave vs Asteroides
                 Rectangle rectNave = { nave.posicion.x, nave.posicion.y, nave.tamanio.x, nave.tamanio.y };
                 NodoAsteroide *actualAsteroide = ObtenerListaAsteroides();
 
@@ -123,7 +122,6 @@ int main(void) {
                             estadoActual = ESTADO_GAME_OVER;
                         } else {
                             if (IsSoundValid(sonidoDanio)) PlaySound(sonidoDanio);
-                            if (IsSoundValid(sonidoExplosion)) PlaySound(sonidoExplosion);
                         }
                         break;
                     }
@@ -142,11 +140,9 @@ int main(void) {
                 break;
         }
 
-        // Renderizado
         DibujarJuego(estadoActual, nave, disparos, puntaje, texNave, texAsteroide, texFondo);
     }
 
-    // Limpieza de recursos
     if (texFondo.id > 0) UnloadTexture(texFondo);
     if (texNave.id > 0) UnloadTexture(texNave);
     if (texAsteroide.id > 0) UnloadTexture(texAsteroide);

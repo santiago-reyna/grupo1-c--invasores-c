@@ -4,7 +4,7 @@
 #include "Grafico.h"
 
 void InicializarJuego(Nave *nave, Disparo disparos[], int *puntaje, int anchoPantalla, int altoPantalla) {
-    nave->tamanio = (Vector2){ 60, 60 };
+    nave->tamanio = (Vector2){ 100, 90 };
     nave->posicion = (Vector2){ anchoPantalla / 2.0f - nave->tamanio.x / 2.0f, (float)altoPantalla - 100 };
     nave->velocidad = (Vector2){ 7.0f, 7.0f };
     nave->vidas = 3;
@@ -66,13 +66,15 @@ void DibujarJuego(EstadoJuego estado, Nave nave, Disparo disparos[], int puntaje
                 }
             }
 
-            //  Puntaje, iconos de Vidas
+            
             DrawText(TextFormat("Puntaje: %d", puntaje), 20, 20, 20, YELLOW);
             
-            // Renderizado de vidas (Iconos de Nave en miniatura)
+            
             DrawText("Vidas:", 20, 50, 20, WHITE);
             for (int i = 0; i < nave.vidas; i++) {
-                DrawTextureEx(texNave, (Vector2){ 90 + (i * 30), 48 }, 0.0f, 0.35f, WHITE);
+                Rectangle src = { 0, 0, (float)texNave.width, (float)texNave.height };
+                Rectangle dest = { 90 + (i * 30), 50, 40, 40 }; // Tamaño
+                DrawTexturePro(texNave, src, dest, (Vector2){0,0}, 0.0f, WHITE);
             }
             break;
 

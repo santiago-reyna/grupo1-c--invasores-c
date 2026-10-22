@@ -97,26 +97,31 @@ void EliminarAsteroide(NodoAsteroide* objetivo, int anchoPantalla) {
     NodoAsteroide* actual = cabeza;
     NodoAsteroide* anterior = NULL;
 
-    while (actual != NULL) 
-    {
-        if (actual == objetivo)
-         {
-            if (anterior == NULL)
-             {
+    while (actual != NULL) {
+        if (actual == objetivo) {
+            if (anterior == NULL) {
                 cabeza = actual->siguiente;
-            } else
-             {
+            } else {
                 anterior->siguiente = actual->siguiente;
             }
 
             free(actual);
 
             asteroidesEliminados++;
-            if (asteroidesEliminados >= 10) 
-            {
+
+            // Si eliminamos 10, subimos la cantidad por oleada y rellenamos
+            if (asteroidesEliminados >= 10) {
                 asteroidesEliminados = 0;
                 cantidadPorOleada += 2;
                 GenerarMasAsteroides(anchoPantalla, cantidadPorOleada);
+            } 
+            // Si la lista quedó vacía antes de llegar a 10, forzamos generación inmediata
+            else if (cabeza == NULL) {
+                GenerarMasAsteroides(anchoPantalla, cantidadPorOleada);
+            }
+            // Mantenemos siempre asteroides en pantalla agregando uno nuevo arriba por cada baja
+            else {
+                AgregarAsteroide(anchoPantalla);
             }
             break;
         }
