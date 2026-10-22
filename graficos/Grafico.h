@@ -16,6 +16,7 @@ typedef struct {
     Vector2 posicion;
     Vector2 velocidad;
     Vector2 tamanio;
+    int vidas;
 } Nave;
 
 typedef struct {
@@ -24,9 +25,8 @@ typedef struct {
     bool activo;
 } Disparo;
 
-void InicializarJuego(Nave *nave, Asteroide asteroides[], Disparo disparos[], int *puntaje);
+void InicializarJuego(Nave *nave, Disparo disparos[], int *puntaje, int anchoPantalla, int altoPantalla);
 void ActualizarJugador(Nave *nave);
-bool ComprobarColision(Nave nave, Asteroide asteroides[]);
-void DibujarJuego(EstadoJuego estado, Nave nave, Asteroide asteroides[], Disparo disparos[], int puntaje, Texture2D texNave, Texture2D texAsteroide, Texture2D texFondo);
+void DibujarJuego(EstadoJuego estado, Nave nave, Disparo disparos[], int puntaje, Texture2D texNave, Texture2D texAsteroide, Texture2D texFondo);
 
 #endif

@@ -10,42 +10,42 @@ int main(void) {
     SetTargetFPS(60);
 
     // Cargar Texturas
-    Texture2D texFondo = LoadTexture("graficos/fondo.png");
+    Texture2D texFondo = LoadTexture("assets/fondo.png");
     if (texFondo.id == 0) texFondo = LoadTexture("fondo.png");
 
-    Texture2D texNave = LoadTexture("graficos/nave.png");
+    Texture2D texNave = LoadTexture("assets/nave.png");
     if (texNave.id == 0) texNave = LoadTexture("nave.png");
 
-    Texture2D texAsteroide = LoadTexture("graficos/asteroide.png");
+    Texture2D texAsteroide = LoadTexture("assets/asteroide.png");
     if (texAsteroide.id == 0) texAsteroide = LoadTexture("asteroide.png");
     
     // Cargar Audio
-    Music musicaFondo = LoadMusicStream("graficos/musicaFondo.wav");
+    Music musicaFondo = LoadMusicStream("assets/musicaFondo.wav");
     if (!IsMusicValid(musicaFondo)) musicaFondo = LoadMusicStream("musicaFondo.wav");
     if (IsMusicValid(musicaFondo)) PlayMusicStream(musicaFondo);
 
-    Sound sonidoDisparo = LoadSound("graficos/disparo.wav");
+    Sound sonidoDisparo = LoadSound("assets/disparo.wav");
     if (!IsSoundValid(sonidoDisparo)) sonidoDisparo = LoadSound("disparo.wav");
 
-    Sound sonidoExplosion = LoadSound("graficos/explosion.wav");
+    Sound sonidoExplosion = LoadSound("assets/explosion.wav");
     if (!IsSoundValid(sonidoExplosion)) sonidoExplosion = LoadSound("explosion.wav");
+
+    Sound sonidoDanio = LoadSound("assets/danio.wav");
+    if (!IsSoundValid(sonidoDanio)) sonidoDanio = LoadSound("danio.wav");
 
     if (IsMusicValid(musicaFondo)) SetMusicVolume(musicaFondo, 0.5f);
     if (IsSoundValid(sonidoDisparo)) SetSoundVolume(sonidoDisparo, 0.5f);
     if (IsSoundValid(sonidoExplosion)) SetSoundVolume(sonidoExplosion, 1.0f);
+    if (IsSoundValid(sonidoDanio)) SetSoundVolume(sonidoDanio, 0.8f);
 
     EstadoJuego estadoActual = ESTADO_MENU;
     Nave nave;
     Disparo disparos[MAX_DISPAROS];
     int puntaje = 0;
 
-    // Inicializaciones
-    InicializarAsteroides();
-    nave.tamanio = (Vector2){ 60, 60 };
-    nave.posicion = (Vector2){ anchoPantalla / 2.0f - nave.tamanio.x / 2.0f, altoPantalla - 100 };
-    nave.velocidad = (Vector2){ 7.0f, 7.0f };
-
-    for (int i = 0; i < MAX_DISPAROS; i++) disparos[i].activo = false;
+    // Inicializaciones principales
+    InicializarAsteroides(anchoPantalla);
+    InicializarJuego(&nave, disparos, &puntaje, anchoPantalla, altoPantalla);
 
     while (!WindowShouldClose()) {
         if (IsMusicValid(musicaFondo)) UpdateMusicStream(musicaFondo);
@@ -53,10 +53,8 @@ int main(void) {
         switch (estadoActual) {
             case ESTADO_MENU:
                 if (IsKeyPressed(KEY_ENTER)) {
-                    InicializarAsteroides();
-                    nave.posicion = (Vector2){ anchoPantalla / 2.0f - nave.tamanio.x / 2.0f, altoPantalla - 100 };
-                    for (int i = 0; i < MAX_DISPAROS; i++) disparos[i].activo = false;
-                    puntaje = 0;
+                    InicializarAsteroides(anchoPantalla);
+                    InicializarJuego(&nave, disparos, &puntaje, anchoPantalla, altoPantalla);
                     estadoActual = ESTADO_JUGANDO;
                 }
                 break;
@@ -86,39 +84,50 @@ int main(void) {
                     }
                 }
 
-                // Obtener asteroides actualizados
-                const Asteroide *asteroidesArray = ObtenerAsteroides();
-
-                // Colisiones: Disparo vs Asteroide
+                // Colisiones: Disparo vs Asteroide (Lista Enlazada)
                 for (int i = 0; i < MAX_DISPAROS; i++) {
                     if (disparos[i].activo) {
-                        for (int j = 0; j < MAX_ASTEROIDES; j++) {
-                            if (asteroidesArray[j].activo) {
-                                Rectangle rectDisparo = { disparos[i].posicion.x, disparos[i].posicion.y, 5, 15 };
-                                Rectangle rectAsteroide = { asteroidesArray[j].posicion.x, asteroidesArray[j].posicion.y, asteroidesArray[j].tamanio.x, asteroidesArray[j].tamanio.y };
+                        Rectangle rectDisparo = { disparos[i].posicion.x, disparos[i].posicion.y, 5, 15 };
+                        NodoAsteroide *actual = ObtenerListaAsteroides();
+                        
+                        while (actual != NULL) {
+                            NodoAsteroide *siguiente = actual->siguiente;
+                            Rectangle rectAsteroide = { actual->posicion.x, actual->posicion.y, actual->tamanio.x, actual->tamanio.y };
 
-                                if (CheckCollisionRecs(rectDisparo, rectAsteroide)) {
-                                    disparos[i].activo = false;
-                                    DesactivarAsteroide(j);
-                                    puntaje += 50;
-                                    if (IsSoundValid(sonidoExplosion)) PlaySound(sonidoExplosion);
-                                }
+                            if (CheckCollisionRecs(rectDisparo, rectAsteroide)) {
+                                disparos[i].activo = false;
+                                EliminarAsteroide(actual, anchoPantalla);
+                                puntaje += 50;
+                                if (IsSoundValid(sonidoExplosion)) PlaySound(sonidoExplosion);
+                                break;
                             }
+                            actual = siguiente;
                         }
                     }
                 }
 
-                // Colisión: Nave vs Asteroide
-                for (int j = 0; j < MAX_ASTEROIDES; j++) {
-                    if (asteroidesArray[j].activo) {
-                        Rectangle rectNave = { nave.posicion.x, nave.posicion.y, nave.tamanio.x, nave.tamanio.y };
-                        Rectangle rectAsteroide = { asteroidesArray[j].posicion.x, asteroidesArray[j].posicion.y, asteroidesArray[j].tamanio.x, asteroidesArray[j].tamanio.y };
+                // Colisión: Nave vs Asteroide (Lista Enlazada)
+                Rectangle rectNave = { nave.posicion.x, nave.posicion.y, nave.tamanio.x, nave.tamanio.y };
+                NodoAsteroide *actualAsteroide = ObtenerListaAsteroides();
 
-                        if (CheckCollisionRecs(rectNave, rectAsteroide)) {
+                while (actualAsteroide != NULL) {
+                    NodoAsteroide *siguiente = actualAsteroide->siguiente;
+                    Rectangle rectAsteroide = { actualAsteroide->posicion.x, actualAsteroide->posicion.y, actualAsteroide->tamanio.x, actualAsteroide->tamanio.y };
+
+                    if (CheckCollisionRecs(rectNave, rectAsteroide)) {
+                        nave.vidas--;
+                        EliminarAsteroide(actualAsteroide, anchoPantalla);
+
+                        if (nave.vidas <= 0) {
                             if (IsSoundValid(sonidoExplosion)) PlaySound(sonidoExplosion);
                             estadoActual = ESTADO_GAME_OVER;
+                        } else {
+                            if (IsSoundValid(sonidoDanio)) PlaySound(sonidoDanio);
+                            if (IsSoundValid(sonidoExplosion)) PlaySound(sonidoExplosion);
                         }
+                        break;
                     }
+                    actualAsteroide = siguiente;
                 }
 
                 puntaje++;
@@ -126,25 +135,25 @@ int main(void) {
 
             case ESTADO_GAME_OVER:
                 if (IsKeyPressed(KEY_R)) {
-                    InicializarAsteroides();
-                    nave.posicion = (Vector2){ anchoPantalla / 2.0f - nave.tamanio.x / 2.0f, altoPantalla - 100 };
-                    for (int i = 0; i < MAX_DISPAROS; i++) disparos[i].activo = false;
-                    puntaje = 0;
+                    InicializarAsteroides(anchoPantalla);
+                    InicializarJuego(&nave, disparos, &puntaje, anchoPantalla, altoPantalla);
                     estadoActual = ESTADO_JUGANDO;
                 }
                 break;
         }
 
-        // Renderizado usando el arreglo de asteroides en movimiento
-        DibujarJuego(estadoActual, nave, (Asteroide*)ObtenerAsteroides(), disparos, puntaje, texNave, texAsteroide, texFondo);
+        // Renderizado
+        DibujarJuego(estadoActual, nave, disparos, puntaje, texNave, texAsteroide, texFondo);
     }
 
+    // Limpieza de recursos
     if (texFondo.id > 0) UnloadTexture(texFondo);
     if (texNave.id > 0) UnloadTexture(texNave);
     if (texAsteroide.id > 0) UnloadTexture(texAsteroide);
     if (IsMusicValid(musicaFondo)) UnloadMusicStream(musicaFondo);
     if (IsSoundValid(sonidoDisparo)) UnloadSound(sonidoDisparo);
     if (IsSoundValid(sonidoExplosion)) UnloadSound(sonidoExplosion);
+    if (IsSoundValid(sonidoDanio)) UnloadSound(sonidoDanio);
 
     CloseAudioDevice();
     CloseWindow();

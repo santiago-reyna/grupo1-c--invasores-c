@@ -3,17 +3,11 @@
 #include "raylib.h"
 #include "Grafico.h"
 
-void InicializarJuego(Nave *nave, Asteroide asteroides[], Disparo disparos[], int *puntaje) {
+void InicializarJuego(Nave *nave, Disparo disparos[], int *puntaje, int anchoPantalla, int altoPantalla) {
     nave->tamanio = (Vector2){ 60, 60 };
-    nave->posicion = (Vector2){ 1000 / 2.0f - nave->tamanio.x / 2.0f, 800 - 100 };
+    nave->posicion = (Vector2){ anchoPantalla / 2.0f - nave->tamanio.x / 2.0f, (float)altoPantalla - 100 };
     nave->velocidad = (Vector2){ 7.0f, 7.0f };
-
-    for (int i = 0; i < MAX_ASTEROIDES; i++) {
-        asteroides[i].tamanio = (Vector2){ 50, 50 };
-        asteroides[i].posicion = (Vector2){ rand() % (1000 - 50), - (rand() % 500) };
-        asteroides[i].velocidad = 3.0f + (rand() % 3);
-        asteroides[i].activo = true;
-    }
+    nave->vidas = 3;
 
     for (int i = 0; i < MAX_DISPAROS; i++) {
         disparos[i].activo = false;
@@ -34,23 +28,11 @@ void ActualizarJugador(Nave *nave) {
     if (nave->posicion.y > 800 - nave->tamanio.y) nave->posicion.y = 800 - nave->tamanio.y;
 }
 
-bool ComprobarColision(Nave nave, Asteroide asteroides[]) {
-    Rectangle rectNave = { nave.posicion.x, nave.posicion.y, nave.tamanio.x, nave.tamanio.y };
-    for (int i = 0; i < MAX_ASTEROIDES; i++) {
-        if (asteroides[i].activo) {
-            Rectangle rectAsteroide = { asteroides[i].posicion.x, asteroides[i].posicion.y, asteroides[i].tamanio.x, asteroides[i].tamanio.y };
-            if (CheckCollisionRecs(rectNave, rectAsteroide)) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-void DibujarJuego(EstadoJuego estado, Nave nave, Asteroide asteroides[], Disparo disparos[], int puntaje, Texture2D texNave, Texture2D texAsteroide, Texture2D texFondo) {
+void DibujarJuego(EstadoJuego estado, Nave nave, Disparo disparos[], int puntaje, Texture2D texNave, Texture2D texAsteroide, Texture2D texFondo) {
     BeginDrawing();
     ClearBackground(BLACK);
 
+    // Fondo
     DrawTexturePro(texFondo, (Rectangle){0, 0, (float)texFondo.width, (float)texFondo.height}, (Rectangle){0, 0, 1000, 800}, (Vector2){0, 0}, 0.0f, WHITE);
 
     switch (estado) {
@@ -60,21 +42,38 @@ void DibujarJuego(EstadoJuego estado, Nave nave, Asteroide asteroides[], Disparo
             break;
 
         case ESTADO_JUGANDO:
+            // Dibujar Nave
             DrawTexturePro(texNave, (Rectangle){0, 0, (float)texNave.width, (float)texNave.height}, (Rectangle){nave.posicion.x, nave.posicion.y, nave.tamanio.x, nave.tamanio.y}, (Vector2){0,0}, 0.0f, WHITE);
 
-            for (int i = 0; i < MAX_ASTEROIDES; i++) {
-                if (asteroides[i].activo) {
-                    DrawTexturePro(texAsteroide, (Rectangle){0, 0, (float)texAsteroide.width, (float)texAsteroide.height}, (Rectangle){asteroides[i].posicion.x, asteroides[i].posicion.y, asteroides[i].tamanio.x, asteroides[i].tamanio.y}, (Vector2){0,0}, 0.0f, WHITE);
-                }
+            // Dibujar Asteroides desde la Lista Enlazada Dinámica
+            NodoAsteroide *actual = ObtenerListaAsteroides();
+            while (actual != NULL) {
+                DrawTexturePro(
+                    texAsteroide, 
+                    (Rectangle){0, 0, (float)texAsteroide.width, (float)texAsteroide.height}, 
+                    (Rectangle){actual->posicion.x, actual->posicion.y, actual->tamanio.x, actual->tamanio.y}, 
+                    (Vector2){0, 0}, 
+                    0.0f, 
+                    WHITE
+                );
+                actual = actual->siguiente;
             }
 
+            // Dibujar Disparos
             for (int i = 0; i < MAX_DISPAROS; i++) {
                 if (disparos[i].activo) {
                     DrawRectangle(disparos[i].posicion.x, disparos[i].posicion.y, 5, 15, RED);
                 }
             }
 
+            //  Puntaje, iconos de Vidas
             DrawText(TextFormat("Puntaje: %d", puntaje), 20, 20, 20, YELLOW);
+            
+            // Renderizado de vidas (Iconos de Nave en miniatura)
+            DrawText("Vidas:", 20, 50, 20, WHITE);
+            for (int i = 0; i < nave.vidas; i++) {
+                DrawTextureEx(texNave, (Vector2){ 90 + (i * 30), 48 }, 0.0f, 0.35f, WHITE);
+            }
             break;
 
         case ESTADO_GAME_OVER:
