@@ -1,9 +1,12 @@
 #ifndef ASTEROIDE_H
 #define ASTEROIDE_H
 
+
 #include "raylib.h"
 #include <stdlib.h>
 
+// Declaración previa de la estructura Nave para evitar errores de tipo o inclusiones circulares
+typedef struct Nave Nave;
 
 typedef struct NodoAsteroide {
     Vector2 posicion;
@@ -11,7 +14,6 @@ typedef struct NodoAsteroide {
     float velocidad;
     struct NodoAsteroide* siguiente; 
 } NodoAsteroide;
-
 
 void InicializarAsteroides(int anchoPantalla);
 
@@ -21,6 +23,8 @@ void DibujarAsteroides(Texture2D texAsteroide);
 
 NodoAsteroide* ObtenerListaAsteroides(void);
 
-void EliminarAsteroide(NodoAsteroide* objetivo, int anchoPantalla);
+void EliminarAsteroide(NodoAsteroide* objetivo, int anchoPantalla, Nave* nave);
+
+void ActualizarDificultadAsteroides(float deltaTiempo);
 
 #endif

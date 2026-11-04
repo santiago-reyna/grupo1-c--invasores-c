@@ -6,8 +6,9 @@
 void InicializarJuego(Nave *nave, Disparo disparos[], int *puntaje, int anchoPantalla, int altoPantalla) {
     nave->tamanio = (Vector2){ 100, 90 };
     nave->posicion = (Vector2){ anchoPantalla / 2.0f - nave->tamanio.x / 2.0f, (float)altoPantalla - 100 };
-    nave->velocidad = (Vector2){ 7.0f, 7.0f };
+    nave->velocidad = 350.0f; // Asignación flotante escalar
     nave->vidas = 3;
+    nave->nivelDisparo = 1;
 
     for (int i = 0; i < MAX_DISPAROS; i++) {
         disparos[i].activo = false;
@@ -17,10 +18,12 @@ void InicializarJuego(Nave *nave, Disparo disparos[], int *puntaje, int anchoPan
 }
 
 void ActualizarJugador(Nave *nave) {
-    if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) nave->posicion.x -= nave->velocidad.x;
-    if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) nave->posicion.x += nave->velocidad.x;
-    if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) nave->posicion.y -= nave->velocidad.y;
-    if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) nave->posicion.y += nave->velocidad.y;
+    float dt = GetFrameTime();
+
+    if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) nave->posicion.x -= nave->velocidad * dt;
+    if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) nave->posicion.x += nave->velocidad * dt;
+    if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) nave->posicion.y -= nave->velocidad * dt;
+    if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) nave->posicion.y += nave->velocidad * dt;
 
     if (nave->posicion.x < 0) nave->posicion.x = 0;
     if (nave->posicion.x > 1000 - nave->tamanio.x) nave->posicion.x = 1000 - nave->tamanio.x;
@@ -66,20 +69,24 @@ void DibujarJuego(EstadoJuego estado, Nave nave, Disparo disparos[], int puntaje
                 }
             }
 
-            
             DrawText(TextFormat("Puntaje: %d", puntaje), 20, 20, 20, YELLOW);
-            
             
             DrawText("Vidas:", 20, 50, 20, WHITE);
             for (int i = 0; i < nave.vidas; i++) {
                 Rectangle src = { 0, 0, (float)texNave.width, (float)texNave.height };
-                Rectangle dest = { 90 + (i * 30), 50, 40, 40 }; // Tamaño
+                Rectangle dest = { 90 + (i * 30), 50, 40, 40 };
                 DrawTexturePro(texNave, src, dest, (Vector2){0,0}, 0.0f, WHITE);
             }
             break;
 
         case ESTADO_GAME_OVER:
             DrawText("GAME OVER", 1000 / 2 - MeasureText("GAME OVER", 40) / 2, 300, 40, RED);
+            DrawText(TextFormat("Puntaje Final: %d", puntaje), 1000 / 2 - MeasureText(TextFormat("Puntaje Final: %d", puntaje), 20) / 2, 360, 20, WHITE);
+            DrawText("Presiona R para reiniciar", 1000 / 2 - MeasureText("Presiona R para reiniciar", 20) / 2, 400, 20, GRAY);
+            break;
+
+        case ESTADO_VICTORIA: // <-- AGREGADO AHORA
+            DrawText("¡VICTORIA!", 1000 / 2 - MeasureText("¡VICTORIA!", 40) / 2, 300, 40, GREEN);
             DrawText(TextFormat("Puntaje Final: %d", puntaje), 1000 / 2 - MeasureText(TextFormat("Puntaje Final: %d", puntaje), 20) / 2, 360, 20, WHITE);
             DrawText("Presiona R para reiniciar", 1000 / 2 - MeasureText("Presiona R para reiniciar", 20) / 2, 400, 20, GRAY);
             break;

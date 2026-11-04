@@ -3,21 +3,17 @@
 
 #include "raylib.h"
 #include "../asteroide/asteroide.h"
+#include "../movimientos/juego.h"
 
-#define MAX_DISPAROS 5
+// Aumentamos de 5 a 15 para soportar los disparos triples
+#define MAX_DISPAROS 15
 
 typedef enum {
     ESTADO_MENU,
     ESTADO_JUGANDO,
-    ESTADO_GAME_OVER
+    ESTADO_GAME_OVER,
+    ESTADO_VICTORIA
 } EstadoJuego;
-
-typedef struct {
-    Vector2 posicion;
-    Vector2 velocidad;
-    Vector2 tamanio;
-    int vidas;
-} Nave;
 
 typedef struct {
     Vector2 posicion;

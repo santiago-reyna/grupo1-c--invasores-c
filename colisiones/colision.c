@@ -1,20 +1,18 @@
 #include "colision.h"
 #include <stddef.h>
 
-bool VerificarColisionNaveAsteroides(Nave nave, int anchoPantalla) {
-    float margen = 6.0f; // Tolerancia contra bordes transparentes
+bool VerificarColisionNaveAsteroides(Nave *nave, int anchoPantalla) {
+    float margen = 6.0f;
 
     Rectangle recNave = { 
-        nave.posicion.x + margen, 
-        nave.posicion.y + margen, 
-        nave.tamanio.x - (margen * 2), 
-        nave.tamanio.y - (margen * 2) 
+        nave->posicion.x + margen, 
+        nave->posicion.y + margen, 
+        nave->tamanio.x - (margen * 2), 
+        nave->tamanio.y - (margen * 2) 
     };
 
-    // Pedimos la cabeza de la lista enlazada
     NodoAsteroide *actual = ObtenerListaAsteroides();
 
-    // Recorremos con un bucle while
     while (actual != NULL) {
         NodoAsteroide *siguiente = actual->siguiente;
 
@@ -26,8 +24,8 @@ bool VerificarColisionNaveAsteroides(Nave nave, int anchoPantalla) {
         };
 
         if (CheckCollisionRecs(recNave, recAsteroide)) {
-            // Si hay colisión, eliminamos el asteroide de la lista y retornamos true
-            EliminarAsteroide(actual, anchoPantalla);
+            // Pasamos &nave como 3er argumento para actualizar el nivel de disparo al colisionar
+            EliminarAsteroide(actual, anchoPantalla, nave);
             return true;
         }
 

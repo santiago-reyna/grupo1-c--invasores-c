@@ -1,4 +1,6 @@
 #include "raylib.h"
+#include "asteroide/asteroide.h"
+#include "movimientos/juego.h"
 #include "graficos/Grafico.h"
 
 int main(void) {
@@ -58,28 +60,79 @@ int main(void) {
                 }
                 break;
 
-            case ESTADO_JUGANDO:
+            case ESTADO_JUGANDO: {
+                float dt = GetFrameTime();
                 ActualizarJugador(&nave);
-                GenerarYMoverAsteroides(anchoPantalla, altoPantalla, GetFrameTime());
 
-                // Disparar
+                // Incremento gradual de velocidad cada 10s
+                ActualizarDificultadAsteroides(dt);
+                GenerarYMoverAsteroides(anchoPantalla, altoPantalla, dt);
+
+                // --- MEJORA A NIVEL 3 DE DISPARO AL LLEGAR A 2400 PUNTOS ---
+                if (puntaje >= 2400 && nave.nivelDisparo < 3) {
+                    nave.nivelDisparo = 3;
+                }
+
+                // --- LÓGICA DE DISPARO SEGÚN NIVEL ---
                 if (IsKeyPressed(KEY_SPACE)) {
-                    for (int i = 0; i < MAX_DISPAROS; i++) {
-                        if (!disparos[i].activo) {
-                            disparos[i].posicion = (Vector2){ nave.posicion.x + nave.tamanio.x / 2 - 2.5f, nave.posicion.y };
-                            disparos[i].velocidad = (Vector2){ 0, -10.0f };
-                            disparos[i].activo = true;
-                            if (IsSoundValid(sonidoDisparo)) PlaySound(sonidoDisparo);
-                            break;
+                    if (nave.nivelDisparo == 1) {
+                        for (int i = 0; i < MAX_DISPAROS; i++) {
+                            if (!disparos[i].activo) {
+                                disparos[i].posicion = (Vector2){ nave.posicion.x + nave.tamanio.x / 2 - 2.5f, nave.posicion.y };
+                                disparos[i].velocidad = (Vector2){ 0, -10.0f };
+                                disparos[i].activo = true;
+                                if (IsSoundValid(sonidoDisparo)) PlaySound(sonidoDisparo);
+                                break;
+                            }
                         }
+                    } 
+                    else if (nave.nivelDisparo == 2) {
+                        int creados = 0;
+                        for (int i = 0; i < MAX_DISPAROS && creados < 2; i++) {
+                            if (!disparos[i].activo) {
+                                float offsetX = (creados == 0) ? 5.0f : nave.tamanio.x - 10.0f;
+                                disparos[i].posicion = (Vector2){ nave.posicion.x + offsetX, nave.posicion.y };
+                                disparos[i].velocidad = (Vector2){ 0, -10.0f };
+                                disparos[i].activo = true;
+                                creados++;
+                            }
+                        }
+                        if (creados > 0 && IsSoundValid(sonidoDisparo)) PlaySound(sonidoDisparo);
+                    } 
+                    else if (nave.nivelDisparo >= 3) {
+                        int creados = 0;
+                        struct { float offX; float velX; float velY; } config[3] = {
+                            { nave.tamanio.x / 2 - 2.5f,  0.0f, -16.0f },
+                            { 0.0f,                      -3.0f, -14.0f },
+                            { nave.tamanio.x - 5.0f,      3.0f, -14.0f }
+                        };
+
+                        for (int c = 0; c < 3; c++) {
+                            for (int i = 0; i < MAX_DISPAROS; i++) {
+                                if (!disparos[i].activo) {
+                                    disparos[i].posicion = (Vector2){ nave.posicion.x + config[c].offX, nave.posicion.y };
+                                    disparos[i].velocidad = (Vector2){ config[c].velX, config[c].velY };
+                                    disparos[i].activo = true;
+                                    creados++;
+                                    break;
+                                }
+                            }
+                        }
+                        if (creados > 0 && IsSoundValid(sonidoDisparo)) PlaySound(sonidoDisparo);
                     }
                 }
 
-                // Movimiento disparos
+                // --- MOVIMIENTO DE DISPAROS (X e Y) ---
                 for (int i = 0; i < MAX_DISPAROS; i++) {
                     if (disparos[i].activo) {
+                        disparos[i].posicion.x += disparos[i].velocidad.x;
                         disparos[i].posicion.y += disparos[i].velocidad.y;
-                        if (disparos[i].posicion.y < 0) disparos[i].activo = false;
+                        
+                        if (disparos[i].posicion.y < 0 || 
+                            disparos[i].posicion.x < -10 || 
+                            disparos[i].posicion.x > anchoPantalla + 10) {
+                            disparos[i].activo = false;
+                        }
                     }
                 }
 
@@ -95,10 +148,18 @@ int main(void) {
 
                             if (CheckCollisionRecs(rectDisparo, rectAsteroide)) {
                                 disparos[i].activo = false;
-                                EliminarAsteroide(actual, anchoPantalla);
+                                EliminarAsteroide(actual, anchoPantalla, &nave);
+                                
+                                // Suma 50 puntos por asteroide destruido
                                 puntaje += 50;
+
+                                // --- CONDICIÓN DE VICTORIA A LOS 15000 PUNTOS ---
+                                if (puntaje >= 15000) {
+                                    estadoActual = ESTADO_VICTORIA;
+                                }
+
                                 if (IsSoundValid(sonidoExplosion)) PlaySound(sonidoExplosion);
-                                break; // Salimos del bucle para no procesar 'actual' destruido
+                                break;
                             }
                             actual = siguiente;
                         }
@@ -115,7 +176,7 @@ int main(void) {
 
                     if (CheckCollisionRecs(rectNave, rectAsteroide)) {
                         nave.vidas--;
-                        EliminarAsteroide(actualAsteroide, anchoPantalla);
+                        EliminarAsteroide(actualAsteroide, anchoPantalla, &nave);
 
                         if (nave.vidas <= 0) {
                             if (IsSoundValid(sonidoExplosion)) PlaySound(sonidoExplosion);
@@ -128,10 +189,11 @@ int main(void) {
                     actualAsteroide = siguiente;
                 }
 
-                puntaje++;
                 break;
+            }
 
             case ESTADO_GAME_OVER:
+            case ESTADO_VICTORIA: // <-- PERMITE REINICIAR CON 'R' AL GANAR
                 if (IsKeyPressed(KEY_R)) {
                     InicializarAsteroides(anchoPantalla);
                     InicializarJuego(&nave, disparos, &puntaje, anchoPantalla, altoPantalla);
