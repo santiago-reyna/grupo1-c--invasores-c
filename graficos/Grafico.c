@@ -48,18 +48,6 @@ void DibujarJuego(EstadoJuego estado, Nave nave, Disparo disparos[], Boss boss, 
             // Dibujar Nave
             DrawTexturePro(texNave, (Rectangle){0, 0, (float)texNave.width, (float)texNave.height}, (Rectangle){nave.posicion.x, nave.posicion.y, nave.tamanio.x, nave.tamanio.y}, (Vector2){0,0}, 0.0f, WHITE);
 
-            // --- VISUALIZACIÓN TEMPORAL DE HITBOX (VERDE) ---
-            // Podés borrar este bloque de 6 líneas cuando termines de calibrar
-            float margenX = 15.0f;
-            float margenY = 10.0f;
-            DrawRectangleLines(
-                nave.posicion.x + margenX, 
-                nave.posicion.y + margenY, 
-                nave.tamanio.x - (margenX * 2.0f), 
-                nave.tamanio.y - (margenY * 2.0f), 
-                GREEN
-            );
-
             // Dibujar Asteroides Comunes desde la Lista Enlazada
             NodoAsteroide *actual = ObtenerListaAsteroides();
             while (actual != NULL) {
