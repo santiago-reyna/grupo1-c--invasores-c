@@ -6,7 +6,7 @@
 void InicializarJuego(Nave *nave, Disparo disparos[], int *puntaje, int anchoPantalla, int altoPantalla) {
     nave->tamanio = (Vector2){ 100, 90 };
     nave->posicion = (Vector2){ anchoPantalla / 2.0f - nave->tamanio.x / 2.0f, (float)altoPantalla - 100 };
-    nave->velocidad = 350.0f; // Asignación flotante escalar
+    nave->velocidad = 350.0f;
     nave->vidas = 3;
     nave->nivelDisparo = 1;
 
@@ -31,7 +31,7 @@ void ActualizarJugador(Nave *nave) {
     if (nave->posicion.y > 800 - nave->tamanio.y) nave->posicion.y = 800 - nave->tamanio.y;
 }
 
-void DibujarJuego(EstadoJuego estado, Nave nave, Disparo disparos[], int puntaje, Texture2D texNave, Texture2D texAsteroide, Texture2D texFondo) {
+void DibujarJuego(EstadoJuego estado, Nave nave, Disparo disparos[], Boss boss, Disparo disparosBoss[], int puntaje, Texture2D texNave, Texture2D texAsteroide, Texture2D texFondo) {
     BeginDrawing();
     ClearBackground(BLACK);
 
@@ -48,7 +48,19 @@ void DibujarJuego(EstadoJuego estado, Nave nave, Disparo disparos[], int puntaje
             // Dibujar Nave
             DrawTexturePro(texNave, (Rectangle){0, 0, (float)texNave.width, (float)texNave.height}, (Rectangle){nave.posicion.x, nave.posicion.y, nave.tamanio.x, nave.tamanio.y}, (Vector2){0,0}, 0.0f, WHITE);
 
-            // Dibujar Asteroides desde la Lista Enlazada Dinámica
+            // --- VISUALIZACIÓN TEMPORAL DE HITBOX (VERDE) ---
+            // Podés borrar este bloque de 6 líneas cuando termines de calibrar
+            float margenX = 15.0f;
+            float margenY = 10.0f;
+            DrawRectangleLines(
+                nave.posicion.x + margenX, 
+                nave.posicion.y + margenY, 
+                nave.tamanio.x - (margenX * 2.0f), 
+                nave.tamanio.y - (margenY * 2.0f), 
+                GREEN
+            );
+
+            // Dibujar Asteroides Comunes desde la Lista Enlazada
             NodoAsteroide *actual = ObtenerListaAsteroides();
             while (actual != NULL) {
                 DrawTexturePro(
@@ -62,15 +74,60 @@ void DibujarJuego(EstadoJuego estado, Nave nave, Disparo disparos[], int puntaje
                 actual = actual->siguiente;
             }
 
-            // Dibujar Disparos
+            // Dibujar Boss si está activo
+            if (boss.activo) {
+                DrawTexturePro(
+                    texAsteroide, 
+                    (Rectangle){0, 0, (float)texAsteroide.width, (float)texAsteroide.height}, 
+                    (Rectangle){boss.posicion.x, boss.posicion.y, boss.tamanio.x, boss.tamanio.y}, 
+                    (Vector2){0, 0}, 
+                    0.0f, 
+                    RED
+                );
+                
+                // Barra de Vida del Boss (Escalada a 150 de HP)
+                DrawRectangle(300, 20, 400, 15, DARKGRAY);
+                DrawRectangle(300, 20, (int)(400.0f * ((float)boss.vidas / 150.0f)), 15, RED);
+                DrawRectangleLines(300, 20, 400, 15, WHITE);
+                DrawText("BOSS FINAL", 1000 / 2 - MeasureText("BOSS FINAL", 16) / 2, 2, 16, RED);
+            }
+
+            // Dibujar Disparos del Jugador
             for (int i = 0; i < MAX_DISPAROS; i++) {
                 if (disparos[i].activo) {
                     DrawRectangle(disparos[i].posicion.x, disparos[i].posicion.y, 5, 15, RED);
                 }
             }
 
+            // Dibujar Proyectiles del Boss (Asteroides comunes o Teledirigidos)
+            for (int i = 0; i < MAX_DISPAROS_BOSS; i++) {
+                if (disparosBoss[i].activo) {
+                    if (disparosBoss[i].esTeledirigido) {
+                        // Asteroide Teledirigido (40x40)
+                        DrawTexturePro(
+                            texAsteroide, 
+                            (Rectangle){0, 0, (float)texAsteroide.width, (float)texAsteroide.height}, 
+                            (Rectangle){disparosBoss[i].posicion.x, disparosBoss[i].posicion.y, 40, 40}, 
+                            (Vector2){0,0}, 
+                            0.0f, 
+                            WHITE
+                        );
+                    } else {
+                        // Mini-Asteroide disparo estándar (18x18)
+                        DrawTexturePro(
+                            texAsteroide, 
+                            (Rectangle){0, 0, (float)texAsteroide.width, (float)texAsteroide.height}, 
+                            (Rectangle){disparosBoss[i].posicion.x, disparosBoss[i].posicion.y, 18, 18}, 
+                            (Vector2){0,0}, 
+                            0.0f, 
+                            ORANGE
+                        );
+                    }
+                }
+            }
+
+            // HUD Jugador
             DrawText(TextFormat("Puntaje: %d", puntaje), 20, 20, 20, YELLOW);
-            
             DrawText("Vidas:", 20, 50, 20, WHITE);
             for (int i = 0; i < nave.vidas; i++) {
                 Rectangle src = { 0, 0, (float)texNave.width, (float)texNave.height };
@@ -85,10 +142,11 @@ void DibujarJuego(EstadoJuego estado, Nave nave, Disparo disparos[], int puntaje
             DrawText("Presiona R para reiniciar", 1000 / 2 - MeasureText("Presiona R para reiniciar", 20) / 2, 400, 20, GRAY);
             break;
 
-        case ESTADO_VICTORIA: // <-- AGREGADO AHORA
+        case ESTADO_VICTORIA:
             DrawText("¡VICTORIA!", 1000 / 2 - MeasureText("¡VICTORIA!", 40) / 2, 300, 40, GREEN);
-            DrawText(TextFormat("Puntaje Final: %d", puntaje), 1000 / 2 - MeasureText(TextFormat("Puntaje Final: %d", puntaje), 20) / 2, 360, 20, WHITE);
-            DrawText("Presiona R para reiniciar", 1000 / 2 - MeasureText("Presiona R para reiniciar", 20) / 2, 400, 20, GRAY);
+            DrawText("¡Has derrotado al Boss Final!", 1000 / 2 - MeasureText("¡Has derrotado al Boss Final!", 20) / 2, 350, 20, WHITE);
+            DrawText(TextFormat("Puntaje Final: %d", puntaje), 1000 / 2 - MeasureText(TextFormat("Puntaje Final: %d", puntaje), 20) / 2, 390, 20, YELLOW);
+            DrawText("Presiona R para reiniciar", 1000 / 2 - MeasureText("Presiona R para reiniciar", 20) / 2, 430, 20, GRAY);
             break;
     }
 
