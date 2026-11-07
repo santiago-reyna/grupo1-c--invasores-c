@@ -1,5 +1,6 @@
 #include "asteroide.h"
 #include "../graficos/Grafico.h" 
+#include <stdlib.h> // Para malloc y free
 
 static NodoAsteroide* cabeza = NULL;
 static int asteroidesEliminados = 0;
@@ -12,6 +13,8 @@ static float temporizadorDificultad = 0.0f;
 static float velocidadExtra = 0.0f;
 
 void ActualizarDificultadAsteroides(float deltaTiempo) {
+    if (deltaTiempo <= 0.0f) return;
+
     temporizadorDificultad += deltaTiempo;
     if (temporizadorDificultad >= 10.0f) {
         if (velocidadExtra < 150.0f) {
@@ -23,13 +26,15 @@ void ActualizarDificultadAsteroides(float deltaTiempo) {
 
 static void AgregarAsteroide(int anchoPantalla) {
     NodoAsteroide* nuevo = (NodoAsteroide*)malloc(sizeof(NodoAsteroide));
-    if (nuevo == NULL) return;
+    if (nuevo == NULL) return; // Control defensivo contra falla de memoria
 
     nuevo->tamanio = (Vector2){ 50.0f, 50.0f };
-    float posX = (float)GetRandomValue(0, anchoPantalla - (int)nuevo->tamanio.x);
+    
+    int maxSpawnX = (anchoPantalla > (int)nuevo->tamanio.x) ? (anchoPantalla - (int)nuevo->tamanio.x) : 0;
+    float posX = (float)GetRandomValue(0, maxSpawnX);
+
     // Aparecen arriba a distintas alturas para que no caigan todos pegados
     nuevo->posicion = (Vector2){ posX, (float)(-GetRandomValue(50, 600)) };
-    
     nuevo->velocidad = (float)GetRandomValue(150, 300) + velocidadExtra;
 
     nuevo->siguiente = cabeza;
@@ -48,13 +53,15 @@ void InicializarAsteroides(int anchoPantalla) {
     temporizadorDificultad = 0.0f;
     velocidadExtra = 0.0f;
 
-    // Generamos exactamente los 25 asteroides de entrada
+    // Generamos exactamente la cantidad fija de asteroides de entrada
     for (int i = 0; i < CANTIDAD_ASTEROIDES; i++) {
         AgregarAsteroide(anchoPantalla);
     }
 }
 
 void GenerarYMoverAsteroides(int anchoPantalla, int altoPantalla, float deltaTiempo) {
+    if (deltaTiempo <= 0.0f) return;
+
     NodoAsteroide* actual = cabeza;
 
     while (actual != NULL) {
@@ -62,7 +69,8 @@ void GenerarYMoverAsteroides(int anchoPantalla, int altoPantalla, float deltaTie
 
         // Si el asteroide sale por abajo de la pantalla, recicla su posición arriba
         if (actual->posicion.y > altoPantalla) {
-            actual->posicion.x = (float)GetRandomValue(0, anchoPantalla - (int)actual->tamanio.x);
+            int maxSpawnX = (anchoPantalla > (int)actual->tamanio.x) ? (anchoPantalla - (int)actual->tamanio.x) : 0;
+            actual->posicion.x = (float)GetRandomValue(0, maxSpawnX);
             actual->posicion.y = (float)(-GetRandomValue(50, 200));
             actual->velocidad = (float)GetRandomValue(150, 300) + velocidadExtra;
         }
@@ -122,7 +130,7 @@ void EliminarAsteroide(NodoAsteroide* objetivo, int anchoPantalla, Nave* nave) {
                 }
             }
 
-            // Mantenemos la cantidad fija responiendo 1 nuevo asteroide por cada 1 destruido
+            // Mantenemos la cantidad fija reponiendo 1 nuevo asteroide por cada 1 destruido
             AgregarAsteroide(anchoPantalla);
             break;
         }

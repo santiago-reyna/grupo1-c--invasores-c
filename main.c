@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stddef.h>
 #include "raylib.h"
 #include "asteroide/asteroide.h"
 #include "movimientos/juego.h"
@@ -12,7 +13,7 @@ int main(void) {
     InitAudioDevice();
     SetTargetFPS(60);
 
-    // Cargar Texturas
+    // Cargar Texturas con validación segura
     Texture2D texFondo = LoadTexture("assets/fondo.png");
     if (texFondo.id == 0) texFondo = LoadTexture("fondo.png");
 
@@ -22,23 +23,24 @@ int main(void) {
     Texture2D texAsteroide = LoadTexture("assets/asteroide.png");
     if (texAsteroide.id == 0) texAsteroide = LoadTexture("asteroide.png");
     
-    // Cargar Audio
+    // Cargar Audio con validación segura
     Music musicaFondo = LoadMusicStream("assets/musicaFondo.wav");
     if (!IsMusicValid(musicaFondo)) musicaFondo = LoadMusicStream("musicaFondo.wav");
-    if (IsMusicValid(musicaFondo)) PlayMusicStream(musicaFondo);
+    if (IsMusicValid(musicaFondo)) {
+        PlayMusicStream(musicaFondo);
+        SetMusicVolume(musicaFondo, 0.5f);
+    }
 
     Sound sonidoDisparo = LoadSound("assets/disparo.wav");
     if (!IsSoundValid(sonidoDisparo)) sonidoDisparo = LoadSound("disparo.wav");
+    if (IsSoundValid(sonidoDisparo)) SetSoundVolume(sonidoDisparo, 0.5f);
 
     Sound sonidoExplosion = LoadSound("assets/explosion.wav");
     if (!IsSoundValid(sonidoExplosion)) sonidoExplosion = LoadSound("explosion.wav");
+    if (IsSoundValid(sonidoExplosion)) SetSoundVolume(sonidoExplosion, 1.0f);
 
     Sound sonidoDanio = LoadSound("assets/danio.wav");
     if (!IsSoundValid(sonidoDanio)) sonidoDanio = LoadSound("danio.wav");
-
-    if (IsMusicValid(musicaFondo)) SetMusicVolume(musicaFondo, 0.5f);
-    if (IsSoundValid(sonidoDisparo)) SetSoundVolume(sonidoDisparo, 0.5f);
-    if (IsSoundValid(sonidoExplosion)) SetSoundVolume(sonidoExplosion, 1.0f);
     if (IsSoundValid(sonidoDanio)) SetSoundVolume(sonidoDanio, 0.8f);
 
     EstadoJuego estadoActual = ESTADO_MENU;
@@ -52,8 +54,7 @@ int main(void) {
     float tiempoPartida = 0.0f;
     bool asteroidesDetenidos = false;
 
-    // --- PARÁMETROS DE HITBOX PARA AJUSTAR SENSACIÓN DE COLISIÓN ---
-    // Modificá estos valores si querés que la caja sea más grande o más chica
+    // Hitbox protegida: no se permitirá que el margen inverta las dimensiones
     const float margenX = 40.0f; 
     const float margenY = 32.0f;
 
@@ -69,14 +70,14 @@ int main(void) {
                     InicializarAsteroides(anchoPantalla);
                     InicializarJuego(&nave, disparos, &puntaje, anchoPantalla, altoPantalla);
                     
-                    // Resetear Boss y Temporizadores
+                    // Resetear Boss y Temporizadores de forma controlada
                     tiempoPartida = 0.0f;
                     asteroidesDetenidos = false;
                     boss.activo = false;
                     boss.animandoEntrada = false;
                     boss.vidas = 150;
-                    boss.tamanio = (Vector2){ 200, 200 };
-                    boss.posicion = (Vector2){ (anchoPantalla / 2.0f) - 100, -220 };
+                    boss.tamanio = (Vector2){ 200.0f, 200.0f };
+                    boss.posicion = (Vector2){ ((float)anchoPantalla / 2.0f) - 100.0f, -220.0f };
                     boss.temporizadorAtaque = 0.0f;
                     boss.temporizadorTeledirigido = 0.0f;
                     boss.tiempoEnPantalla = 0.0f;
@@ -138,8 +139,8 @@ int main(void) {
                             if (boss.tiempoEnPantalla < 5.0f) {
                                 for (int i = 0; i < MAX_DISPAROS_BOSS; i++) {
                                     if (!disparosBoss[i].activo) {
-                                        disparosBoss[i].posicion = (Vector2){ boss.posicion.x + boss.tamanio.x / 2 - 9, boss.posicion.y + boss.tamanio.y };
-                                        disparosBoss[i].velocidad = (Vector2){ 0, 6.0f };
+                                        disparosBoss[i].posicion = (Vector2){ boss.posicion.x + boss.tamanio.x / 2.0f - 9.0f, boss.posicion.y + boss.tamanio.y };
+                                        disparosBoss[i].velocidad = (Vector2){ 0.0f, 6.0f };
                                         disparosBoss[i].esTeledirigido = false;
                                         disparosBoss[i].activo = true;
                                         if (IsSoundValid(sonidoDisparo)) PlaySound(sonidoDisparo);
@@ -153,11 +154,11 @@ int main(void) {
                                 for (int c = 0; c < 3; c++) {
                                     for (int i = 0; i < MAX_DISPAROS_BOSS; i++) {
                                         if (!disparosBoss[i].activo) {
-                                            disparosBoss[i].posicion = (Vector2){ boss.posicion.x + boss.tamanio.x / 2 - 9, boss.posicion.y + boss.tamanio.y };
+                                            disparosBoss[i].posicion = (Vector2){ boss.posicion.x + boss.tamanio.x / 2.0f - 9.0f, boss.posicion.y + boss.tamanio.y };
                                             disparosBoss[i].velocidad = (Vector2){ config[c].velX, config[c].velY };
                                             disparosBoss[i].esTeledirigido = false;
                                             disparosBoss[i].activo = true;
-                                            break;
+                                            break; // Avanza a la siguiente configuración del arreglo
                                         }
                                     }
                                 }
@@ -165,13 +166,13 @@ int main(void) {
                             }
                         }
 
-                        // Generar Asteroide Teledirigido (40x40) cada 3 segundos
+                        // Generar Asteroide Teledirigido
                         if (boss.temporizadorTeledirigido >= 3.0f) {
                             boss.temporizadorTeledirigido = 0.0f;
                             for (int i = 0; i < MAX_DISPAROS_BOSS; i++) {
                                 if (!disparosBoss[i].activo) {
-                                    disparosBoss[i].posicion = (Vector2){ boss.posicion.x + boss.tamanio.x / 2 - 20.0f, boss.posicion.y + boss.tamanio.y };
-                                    disparosBoss[i].velocidad = (Vector2){ 0, 0 };
+                                    disparosBoss[i].posicion = (Vector2){ boss.posicion.x + boss.tamanio.x / 2.0f - 20.0f, boss.posicion.y + boss.tamanio.y };
+                                    disparosBoss[i].velocidad = (Vector2){ 0.0f, 0.0f };
                                     disparosBoss[i].esTeledirigido = true;
                                     disparosBoss[i].activo = true;
                                     break;
@@ -188,8 +189,8 @@ int main(void) {
                     if (nave.nivelDisparo == 1) {
                         for (int i = 0; i < MAX_DISPAROS; i++) {
                             if (!disparos[i].activo) {
-                                disparos[i].posicion = (Vector2){ nave.posicion.x + nave.tamanio.x / 2 - 2.5f, nave.posicion.y };
-                                disparos[i].velocidad = (Vector2){ 0, -10.0f };
+                                disparos[i].posicion = (Vector2){ nave.posicion.x + nave.tamanio.x / 2.0f - 2.5f, nave.posicion.y };
+                                disparos[i].velocidad = (Vector2){ 0.0f, -10.0f };
                                 disparos[i].activo = true;
                                 if (IsSoundValid(sonidoDisparo)) PlaySound(sonidoDisparo);
                                 break;
@@ -201,7 +202,7 @@ int main(void) {
                             if (!disparos[i].activo) {
                                 float offsetX = (creados == 0) ? 5.0f : nave.tamanio.x - 10.0f;
                                 disparos[i].posicion = (Vector2){ nave.posicion.x + offsetX, nave.posicion.y };
-                                disparos[i].velocidad = (Vector2){ 0, -10.0f };
+                                disparos[i].velocidad = (Vector2){ 0.0f, -10.0f };
                                 disparos[i].activo = true;
                                 creados++;
                             }
@@ -210,9 +211,9 @@ int main(void) {
                     } else if (nave.nivelDisparo >= 3) {
                         int creados = 0;
                         struct { float offX; float velX; float velY; } config[3] = {
-                            { nave.tamanio.x / 2 - 2.5f,  0.0f, -16.0f },
-                            { 0.0f,                      -3.0f, -14.0f },
-                            { nave.tamanio.x - 5.0f,      3.0f, -14.0f }
+                            { nave.tamanio.x / 2.0f - 2.5f,  0.0f, -16.0f },
+                            { 0.0f,                        -3.0f, -14.0f },
+                            { nave.tamanio.x - 5.0f,        3.0f, -14.0f }
                         };
                         for (int c = 0; c < 3; c++) {
                             for (int i = 0; i < MAX_DISPAROS; i++) {
@@ -234,7 +235,7 @@ int main(void) {
                     if (disparos[i].activo) {
                         disparos[i].posicion.x += disparos[i].velocidad.x;
                         disparos[i].posicion.y += disparos[i].velocidad.y;
-                        if (disparos[i].posicion.y < 0 || disparos[i].posicion.x < -10 || disparos[i].posicion.x > anchoPantalla + 10) {
+                        if (disparos[i].posicion.y < 0.0f || disparos[i].posicion.x < -10.0f || disparos[i].posicion.x > (float)anchoPantalla + 10.0f) {
                             disparos[i].activo = false;
                         }
                     }
@@ -249,7 +250,7 @@ int main(void) {
                             float dirY = centroNave.y - disparosBoss[i].posicion.y;
                             float magnitud = sqrtf(dirX * dirX + dirY * dirY);
 
-                            if (magnitud > 0.0f) {
+                            if (magnitud > 0.0001f) { // Prevención división por cero muy pequeños
                                 float velocidadLenta = 150.0f;
                                 disparosBoss[i].posicion.x += (dirX / magnitud) * velocidadLenta * dt;
                                 disparosBoss[i].posicion.y += (dirY / magnitud) * velocidadLenta * dt;
@@ -259,8 +260,8 @@ int main(void) {
                             disparosBoss[i].posicion.y += disparosBoss[i].velocidad.y;
                         }
 
-                        if (disparosBoss[i].posicion.y > altoPantalla + 20 || disparosBoss[i].posicion.y < -50 ||
-                            disparosBoss[i].posicion.x < -20 || disparosBoss[i].posicion.x > anchoPantalla + 20) {
+                        if (disparosBoss[i].posicion.y > (float)altoPantalla + 20.0f || disparosBoss[i].posicion.y < -50.0f ||
+                            disparosBoss[i].posicion.x < -20.0f || disparosBoss[i].posicion.x > (float)anchoPantalla + 20.0f) {
                             disparosBoss[i].activo = false;
                         }
                     }
@@ -268,18 +269,21 @@ int main(void) {
 
                 // --- 4. COLISIONES ---
                 
-                // DEFINICIÓN DE LA HITBOX AJUSTADA DE LA NAVE
+                // Generación defensiva de la Hitbox
+                float anchoCaja = (nave.tamanio.x > margenX * 2.0f) ? nave.tamanio.x - (margenX * 2.0f) : 1.0f;
+                float altoCaja = (nave.tamanio.y > margenY * 2.0f) ? nave.tamanio.y - (margenY * 2.0f) : 1.0f;
+                
                 Rectangle rectNave = { 
                     nave.posicion.x + margenX, 
                     nave.posicion.y + margenY, 
-                    nave.tamanio.x - (margenX * 2.0f), 
-                    nave.tamanio.y - (margenY * 2.0f) 
+                    anchoCaja, 
+                    altoCaja 
                 };
 
                 // Colisiones: Disparos del Jugador
                 for (int i = 0; i < MAX_DISPAROS; i++) {
                     if (disparos[i].activo) {
-                        Rectangle rectDisparo = { disparos[i].posicion.x, disparos[i].posicion.y, 5, 15 };
+                        Rectangle rectDisparo = { disparos[i].posicion.x, disparos[i].posicion.y, 5.0f, 15.0f };
                         
                         // Impacto contra Asteroides Comunes
                         NodoAsteroide *actual = ObtenerListaAsteroides();
@@ -313,11 +317,11 @@ int main(void) {
                             }
                         }
 
-                        // Impacto Disparo Jugador vs Asteroide Teledirigido del Boss (40x40)
+                        // Impacto Disparo Jugador vs Asteroide Teledirigido del Boss
                         if (disparos[i].activo) {
                             for (int k = 0; k < MAX_DISPAROS_BOSS; k++) {
                                 if (disparosBoss[k].activo && disparosBoss[k].esTeledirigido) {
-                                    Rectangle rectTeledirigido = { disparosBoss[k].posicion.x, disparosBoss[k].posicion.y, 40, 40 };
+                                    Rectangle rectTeledirigido = { disparosBoss[k].posicion.x, disparosBoss[k].posicion.y, 40.0f, 40.0f };
                                     if (CheckCollisionRecs(rectDisparo, rectTeledirigido)) {
                                         disparos[i].activo = false;
                                         disparosBoss[k].activo = false;
@@ -331,12 +335,12 @@ int main(void) {
                     }
                 }
 
-                // Disparos/Teledirigidos del Boss vs Nave (Usando rectNave Ajustada)
+                // Disparos/Teledirigidos del Boss vs Nave
                 for (int i = 0; i < MAX_DISPAROS_BOSS; i++) {
                     if (disparosBoss[i].activo) {
                         Rectangle rectImpacto = disparosBoss[i].esTeledirigido 
-                            ? (Rectangle){ disparosBoss[i].posicion.x, disparosBoss[i].posicion.y, 40, 40 }
-                            : (Rectangle){ disparosBoss[i].posicion.x, disparosBoss[i].posicion.y, 18, 18 };
+                            ? (Rectangle){ disparosBoss[i].posicion.x, disparosBoss[i].posicion.y, 40.0f, 40.0f }
+                            : (Rectangle){ disparosBoss[i].posicion.x, disparosBoss[i].posicion.y, 18.0f, 18.0f };
 
                         if (CheckCollisionRecs(rectNave, rectImpacto)) {
                             disparosBoss[i].activo = false;
@@ -351,7 +355,7 @@ int main(void) {
                     }
                 }
 
-                // Nave vs Asteroides Comunes (Usando rectNave Ajustada)
+                // Nave vs Asteroides Comunes
                 NodoAsteroide *actualAsteroide = ObtenerListaAsteroides();
                 while (actualAsteroide != NULL) {
                     NodoAsteroide *siguiente = actualAsteroide->siguiente;
@@ -372,7 +376,7 @@ int main(void) {
                     actualAsteroide = siguiente;
                 }
 
-                // Nave vs Boss (Choque directo usando rectNave Ajustada)
+                // Nave vs Boss (Choque directo)
                 if (boss.activo) {
                     Rectangle rectBoss = { boss.posicion.x, boss.posicion.y, boss.tamanio.x, boss.tamanio.y };
                     if (CheckCollisionRecs(rectNave, rectBoss)) {
@@ -397,8 +401,8 @@ int main(void) {
                     boss.activo = false;
                     boss.animandoEntrada = false;
                     boss.vidas = 150;
-                    boss.tamanio = (Vector2){ 200, 200 };
-                    boss.posicion = (Vector2){ (anchoPantalla / 2.0f) - 100, -220 };
+                    boss.tamanio = (Vector2){ 200.0f, 200.0f };
+                    boss.posicion = (Vector2){ ((float)anchoPantalla / 2.0f) - 100.0f, -220.0f };
                     boss.temporizadorAtaque = 0.0f;
                     boss.temporizadorTeledirigido = 0.0f;
                     boss.tiempoEnPantalla = 0.0f;
@@ -416,10 +420,11 @@ int main(void) {
         DibujarJuego(estadoActual, nave, disparos, boss, disparosBoss, puntaje, texNave, texAsteroide, texFondo);
     }
 
+    // Limpieza segura
     if (texFondo.id > 0) UnloadTexture(texFondo);
     if (texNave.id > 0) UnloadTexture(texNave);
     if (texAsteroide.id > 0) UnloadTexture(texAsteroide);
-    if (IsMusicValid(musicaFondo)) UnloadMusicStream(musicaFondo);
+    if (IsMusicValid(musicaFondo)) { StopMusicStream(musicaFondo); UnloadMusicStream(musicaFondo); }
     if (IsSoundValid(sonidoDisparo)) UnloadSound(sonidoDisparo);
     if (IsSoundValid(sonidoExplosion)) UnloadSound(sonidoExplosion);
     if (IsSoundValid(sonidoDanio)) UnloadSound(sonidoDanio);
